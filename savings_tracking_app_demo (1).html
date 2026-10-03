@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPK Savings Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PWA Meta Tags & Dynamic Manifest -->
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MPK Savings">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/059669/ffffff?text=MPK">
+    <link id="pwaManifestLink" rel="manifest">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
+
+    <div id="app" class="max-w-md md:max-w-4xl mx-auto min-h-screen flex flex-col shadow-2xl bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-800">
+        
+        <!-- MPK App Header with Live 12-Hour Clock -->
+        <header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- MPK Custom Logo Icon -->
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/25 border border-white/20 relative overflow-hidden group">
+                    <span class="font-extrabold text-xs tracking-tighter font-mono z-10">MPK</span>
+                    <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-base md:text-lg text-slate-900 dark:text-white leading-tight flex items-center gap-1.5">
+                            <span>MPK</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-bold">Savings</span>
+                        </h1>
+                        <!-- Live 12hr Clock Badge (Desktop) -->
+                        <div id="liveClockBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300 font-mono text-xs font-semibold shadow-xs">
+                            <i class="fa-regular fa-clock text-emerald-500 animate-pulse text-[11px]"></i>
+                            <span id="liveClockTime">12:00:00 PM</span>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Goal & Flexible Money Tracker</p>
+                </div>
+            </div>
+
+            <!-- Mobile Clock & Header Controls -->
+            <div class="flex items-center space-x-2">
+                <!-- Live 12hr Clock (Mobile) -->
+                <div class="sm:hidden flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-mono text-[11px] font-semibold">
+                    <i class="fa-regular fa-clock text-emerald-500 text-[10px]"></i>
+                    <span id="liveClockMobile">12:00 PM</span>
+                </div>
+
+                <!-- PWA Install Header Button -->
+                <button id="pwaInstallHeaderBtn" onclick="triggerPwaInstall()" title="Install MPK App" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-sm animate-pulse">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden md:inline">Install App</span>
+                </button>
+
+                <!-- Theme Switcher -->
+                <button id="themeToggle" title="Toggle Light/Dark Theme" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition border border-slate-200 dark:border-slate-700">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Toast Notification Alert -->
+        <div id="toast" class="fixed top-16 right-4 left-4 md:left-auto md:w-80 z-50 transform translate-y-[-150%] opacity-0 transition-all duration-300 pointer-events-none">
+            <div class="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 border border-slate-700 dark:border-slate-300">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600 text-lg"></i>
+                <span id="toastMsg" class="text-xs font-medium">Action completed successfully!</span>
+            </div>
+        </div>
+
+        <main class="flex-1 p-4 pb-24 overflow-y-auto custom-scrollbar space-y-6">
+
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <!-- Total Savings Overview Banner -->
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white p-6 shadow-lg shadow-emerald-500/15">
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs uppercase tracking-wider text-emerald-100 font-medium">Total Accumulated Balance</span>
+                            <div class="text-3xl font-extrabold tracking-tight mt-1 flex items-baseline gap-1">
+                                <span class="currSymbol">₹</span><span id="totalSavings">0</span>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold text-emerald-50 border border-white/20" id="overallPercentBadge">0% Target Met</span>
+                    </div>
+
+                    <!-- Dual Method Savings Split Cards -->
+                    <div class="grid grid-cols-2 gap-2 mb-4 bg-black/20 p-2.5 rounded-xl text-xs">
+                        <div class="flex flex-col">
+                            <span class="text-emerald-200 text-[11px] font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-bullseye text-emerald-300"></i>
+                                Goal Savings
+                            </span>
+                            <span class="font-extrabold text-sm mt-0.5"><span class="currSymbol">₹</span><span id="goalSavingsTotal">0</span></span>
+                            <span class="text-[10px] text-emerald-200/70">Min 3-Month Target</span>
+                        </div>
+                        <div class="flex flex-col border-l border-white/15 pl-3">
+                            <span class="text-emerald-200 text-[11px] font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-wallet text-teal-300"></i>
+                                Non-Goal Savings
+                            </span>
+                            <span class="font-extrabold text-sm mt-0.5"><span class="currSymbol">₹</span><span id="nonGoalSavingsTotal">0</span></span>
+                            <span class="text-[10px] text-emerald-200/70">Flexible Pot</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Target Progress Indicator -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs text-emerald-100 font-medium">
+                            <span>Goals Target Progress:</span>
+                            <span><span class="currSymbol">₹</span><span id="totalTarget">0</span></span>
+                        </div>
+                        <div class="w-full bg-black/20 rounded-full h-2.5 overflow-hidden p-0.5">
+                            <div id="overallProgressBar" class="bg-white h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Deposit/Withdraw Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-white/15">
+                        <button onclick="openDepositModal()" class="py-2.5 px-4 bg-white text-emerald-700 font-bold rounded-xl text-sm hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-emerald-600"></i>
+                            <span>Deposit Money</span>
+                        </button>
+                        <button onclick="openWithdrawModal()" class="py-2.5 px-4 bg-emerald-700/60 hover:bg-emerald-700/80 text-white font-semibold rounded-xl text-sm border border-white/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-minus-circle"></i>
+                            <span>Withdraw</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Non-Goal Flexible Savings Banner Card -->
+                <div class="bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-transparent p-4 rounded-2xl border border-teal-200 dark:border-teal-800/60 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-11 h-11 rounded-2xl bg-teal-500 text-white flex items-center justify-center text-lg shadow-md shadow-teal-500/20">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="font-bold text-sm text-slate-900 dark:text-white">Non-Goal Savings</h3>
+                                <span class="px-2 py-0.5 bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 text-[10px] font-bold rounded-md">Flexible Pot</span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add or withdraw anytime without date constraints.</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-base font-extrabold text-teal-700 dark:text-teal-300 block"><span class="currSymbol">₹</span><span id="nonGoalCardBalance">0</span></span>
+                        <button onclick="openDepositModal('non-goal')" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline mt-1 inline-block">+ Deposit</button>
+                    </div>
+                </div>
+
+                <!-- Priority Goal Cards -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye text-emerald-500"></i>
+                            <span>Goal-Based Savings (Min 3 Months)</span>
+                        </h3>
+                        <button onclick="switchTab('tab-goals')" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">View All →</button>
+                    </div>
+
+                    <div id="dashboardGoalsList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Dynamic Goals injected by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Recent Activity Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-teal-500"></i>
+                            <span>Recent Activity</span>
+                        </h3>
+                        <button onclick="switchTab('tab-history')" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">Full History →</button>
+                    </div>
+
+                    <div id="recentTransactionsList" class="bg-slate-100/70 dark:bg-slate-800/50 rounded-2xl p-2 space-y-1 border border-slate-200/80 dark:border-slate-800">
+                        <!-- Dynamic Transactions injected -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: GOALS TAB -->
+            <section id="tab-goals" class="tab-content hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Savings Goals</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Target commitment goals (Minimum 3-month horizon)</p>
+                    </div>
+                    <button onclick="openAddGoalModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-500/20 transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>New Goal</span>
+                    </button>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
+                    <button onclick="filterGoals('all')" class="goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-emerald-600 text-white" data-category="all">All Goals</button>
+                    <button onclick="filterGoals('Emergency')" class="goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-category="Emergency">Emergency</button>
+                    <button onclick="filterGoals('Travel')" class="goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-category="Travel">Travel</button>
+                    <button onclick="filterGoals('Gadgets')" class="goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-category="Gadgets">Gadgets</button>
+                    <button onclick="filterGoals('Investment')" class="goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-category="Investment">Investment</button>
+                </div>
+
+                <!-- Goals List Container -->
+                <div id="allGoalsList" class="space-y-3">
+                    <!-- Dynamic goals rendered here -->
+                </div>
+            </section>
+
+            <!-- TAB 3: TRANSACTION HISTORY -->
+            <section id="tab-history" class="tab-content hidden space-y-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Transaction Log</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">All deposits and withdrawals across Goal & Non-Goal pots</p>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="txSearch" onkeyup="renderTransactions()" placeholder="Search transaction..." class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <select id="txTypeFilter" onchange="renderTransactions()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <option value="all">All Types</option>
+                        <option value="deposit">Deposits Only</option>
+                        <option value="withdraw">Withdrawals Only</option>
+                    </select>
+                </div>
+
+                <!-- Detailed Transaction List -->
+                <div id="fullTransactionsList" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/60">
+                    <!-- Dynamic transactions -->
+                </div>
+            </section>
+
+            <!-- TAB 4: ANALYTICS -->
+            <section id="tab-analytics" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Analytics & Visuals</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Pot allocation breakdown and savings growth trends</p>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pot Allocation Breakdown</h3>
+                    <div class="w-full max-w-[280px] mx-auto py-2">
+                        <canvas id="goalsDoughnutChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monthly Savings Trend</h3>
+                    <div class="w-full h-48">
+                        <canvas id="monthlyBarChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: SETTINGS -->
+            <section id="tab-settings" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">App Settings</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Preferences and demo data control</p>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">
+                    <!-- Currency Setting -->
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                <i class="fa-solid fa-coins"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Currency Symbol</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Choose preferred currency</p>
+                            </div>
+                        </div>
+                        <select id="currencySelect" onchange="changeCurrency(this.value)" class="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs rounded-xl px-3 py-1.5 font-semibold focus:outline-none">
+                            <option value="₹">₹ (INR)</option>
+                            <option value="$">$ (USD)</option>
+                            <option value="€">€ (EUR)</option>
+                            <option value="£">£ (GBP)</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset Demo Data -->
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Reset Demo Data</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Restore initial state</p>
+                            </div>
+                        </div>
+                        <button onclick="resetDemoData()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold transition">
+                            Reset
+                        </button>
+                    </div>
+
+                    <!-- PWA Mobile App Installation Setting -->
+                    <div class="p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Install Mobile App (PWA)</h4>
+                                <p id="pwaStatusText" class="text-xs text-slate-500 dark:text-slate-400">Add to home screen for fast offline access</p>
+                            </div>
+                        </div>
+                        <button id="pwaInstallSettingsBtn" onclick="triggerPwaInstall()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1">
+                            <i class="fa-solid fa-download text-[11px]"></i>
+                            <span>Install</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Floating Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md md:max-w-4xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-2">
+            <div class="grid grid-cols-5 text-center">
+                <button onclick="switchTab('tab-dashboard')" class="nav-btn flex flex-col items-center justify-center py-1 text-emerald-600 dark:text-emerald-400" data-tab="tab-dashboard">
+                    <i class="fa-solid fa-house text-lg"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Home</span>
+                </button>
+                <button onclick="switchTab('tab-goals')" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="tab-goals">
+                    <i class="fa-solid fa-bullseye text-lg"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Goals</span>
+                </button>
+
+                <!-- Center Deposit Floating Action Button -->
+                <div class="relative flex justify-center items-center">
+                    <button onclick="openDepositModal()" class="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/30 flex items-center justify-center text-xl -mt-5 border-4 border-white dark:border-slate-900 active:scale-95 transition">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <button onclick="switchTab('tab-history')" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="tab-history">
+                    <i class="fa-solid fa-receipt text-lg"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">History</span>
+                </button>
+                <button onclick="switchTab('tab-analytics')" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="tab-analytics">
+                    <i class="fa-solid fa-chart-pie text-lg"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Analytics</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Add Goal Modal (Enforces Minimum 3 Months Rule) -->
+        <div id="addGoalModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity">
+            <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-3xl md:rounded-3xl p-6 space-y-4 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900 dark:text-white">Create New Savings Goal</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Minimum 3-Month Duration Enforced</p>
+                    </div>
+                    <button onclick="closeModal('addGoalModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <form id="addGoalForm" onsubmit="handleAddGoal(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Goal Title</label>
+                        <input type="text" id="goalTitle" required placeholder="e.g. Emergency Fund / Laptop" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Target Amount</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-slate-400 font-bold currSymbol">₹</span>
+                                <input type="number" id="goalTarget" required min="100" placeholder="50000" class="w-full pl-8 pr-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Category</label>
+                            <select id="goalCategory" class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <option value="Emergency">Emergency</option>
+                                <option value="Travel">Travel</option>
+                                <option value="Gadgets">Gadgets</option>
+                                <option value="Investment">Investment</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Minimum 3 Months Target Date Field -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300">Target Date</label>
+                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Min 3 months required</span>
+                        </div>
+                        <input type="date" id="goalTargetDate" required class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <p id="minDateHelp" class="text-[10px] text-slate-400 mt-1">Earliest allowed date: <span id="minDateText" class="font-semibold text-emerald-600 dark:text-emerald-400">--</span></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Initial Deposit (Optional)</label>
+                        <input type="number" id="goalInitial" min="0" placeholder="0" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition">
+                            Create Goal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Deposit / Withdraw Modal -->
+        <div id="depositModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end md:items-center justify-center p-0 md:p-4 transition-opacity">
+            <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-3xl md:rounded-3xl p-6 space-y-4 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 id="modalTxTitle" class="font-bold text-lg text-slate-900 dark:text-white">Deposit Funds</h3>
+                    <button onclick="closeModal('depositModal')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <form id="txForm" onsubmit="handleTransactionSubmit(event)" class="space-y-3">
+                    <input type="hidden" id="txType" value="deposit">
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Select Pot / Goal</label>
+                        <select id="txGoalSelect" required class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Amount</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold currSymbol">₹</span>
+                            <input type="number" id="txAmount" required min="1" placeholder="500" class="w-full pl-8 pr-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Note (Optional)</label>
+                        <input type="text" id="txNote" placeholder="e.g. Monthly allocation" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="txSubmitBtn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition">
+                            Confirm Transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Helper to calculate future date (default minimum 3 months)
+        function getFutureDate(monthsOffset = 3) {
+            const d = new Date();
+            d.setMonth(d.getMonth() + monthsOffset);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Initial default state
+        const DEFAULT_NON_GOAL_SAVINGS = 15000;
+
+        const DEFAULT_GOALS = [
+            { id: 'g1', title: 'Emergency Fund', category: 'Emergency', target: 100000, current: 65000, targetDate: getFutureDate(6), icon: 'fa-shield-halved' },
+            { id: 'g2', title: 'Summer Vacation', category: 'Travel', target: 40000, current: 42000, targetDate: getFutureDate(4), icon: 'fa-plane' }, // Over 100% demo (105%)
+            { id: 'g3', title: 'New Work Laptop', category: 'Gadgets', target: 80000, current: 80000, targetDate: getFutureDate(3), icon: 'fa-laptop' },
+            { id: 'g4', title: 'Gold Investment', category: 'Investment', target: 150000, current: 45000, targetDate: getFutureDate(12), icon: 'fa-coins' }
+        ];
+
+        const DEFAULT_TRANSACTIONS = [
+            { id: 't0', goalId: 'non-goal', goalTitle: 'Non-Goal Savings Pot', type: 'deposit', amount: 5000, date: '2026-10-02', note: 'Flexible monthly add' },
+            { id: 't1', goalId: 'g1', goalTitle: 'Emergency Fund', type: 'deposit', amount: 5000, date: '2026-10-01', note: 'Monthly goal deposit' },
+            { id: 't2', goalId: 'g2', goalTitle: 'Summer Vacation', type: 'deposit', amount: 4000, date: '2026-09-28', note: 'Bonus overachieved deposit' },
+            { id: 't3', goalId: 'g3', goalTitle: 'New Work Laptop', type: 'deposit', amount: 10000, date: '2026-09-20', note: 'Final planned deposit' }
+        ];
+
+        let nonGoalSavings = DEFAULT_NON_GOAL_SAVINGS;
+        let goals = JSON.parse(JSON.stringify(DEFAULT_GOALS));
+        let transactions = JSON.parse(JSON.stringify(DEFAULT_TRANSACTIONS));
+        let currentCurrency = '₹';
+        let currentCategoryFilter = 'all';
+        let doughnutChart = null;
+        let monthlyChart = null;
+
+        function saveDataToStorage() {
+            try {
+                localStorage.setItem('mpk_non_goal', JSON.stringify(nonGoalSavings));
+                localStorage.setItem('mpk_goals', JSON.stringify(goals));
+                localStorage.setItem('mpk_transactions', JSON.stringify(transactions));
+                localStorage.setItem('mpk_currency', currentCurrency);
+            } catch (e) {
+                console.warn('LocalStorage save error:', e);
+            }
+        }
+
+        function loadDataFromStorage() {
+            try {
+                const savedNonGoal = localStorage.getItem('mpk_non_goal');
+                const savedGoals = localStorage.getItem('mpk_goals');
+                const savedTransactions = localStorage.getItem('mpk_transactions');
+                const savedCurrency = localStorage.getItem('mpk_currency');
+
+                if (savedNonGoal !== null) nonGoalSavings = JSON.parse(savedNonGoal);
+                if (savedGoals !== null) goals = JSON.parse(savedGoals);
+                if (savedTransactions !== null) transactions = JSON.parse(savedTransactions);
+                if (savedCurrency !== null) {
+                    currentCurrency = savedCurrency;
+                    const select = document.getElementById('currencySelect');
+                    if (select) select.value = currentCurrency;
+                }
+            } catch (e) {
+                console.warn('LocalStorage load error, reverting to defaults:', e);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDataFromStorage();
+            initTheme();
+            initLiveClock();
+            setupMinTargetDate();
+            renderDashboard();
+            renderGoalsList('all');
+            renderTransactions();
+            initCharts();
+            initPwaSupport();
+        });
+
+        // Theme management with LocalStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('mpk_theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        const themeBtn = document.getElementById('themeToggle');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.setItem('mpk_theme', isDark ? 'dark' : 'light');
+            });
+        }
+
+        // Live 12-Hour Digital Clock Function
+        function initLiveClock() {
+            function updateClock() {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // 0 becomes 12
+                const formattedHours = String(hours).padStart(2, '0');
+
+                const timeStrFull = `${formattedHours}:${minutes}:${seconds} ${ampm}`;
+                const timeStrShort = `${formattedHours}:${minutes} ${ampm}`;
+
+                const clockDesktop = document.getElementById('liveClockTime');
+                const clockMobile = document.getElementById('liveClockMobile');
+
+                if (clockDesktop) clockDesktop.innerText = timeStrFull;
+                if (clockMobile) clockMobile.innerText = timeStrShort;
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // Setup Minimum 3 Month Date Restriction
+        function setupMinTargetDate() {
+            const minDate = getFutureDate(3);
+            const dateInput = document.getElementById('goalTargetDate');
+            const minDateText = document.getElementById('minDateText');
+
+            if (dateInput) {
+                dateInput.min = minDate;
+                dateInput.value = minDate;
+            }
+            if (minDateText) {
+                minDateText.innerText = minDate;
+            }
+        }
+
+        // Navigation Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) targetTab.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const isCurrent = btn.getAttribute('data-tab') === tabId;
+                if (isCurrent) {
+                    btn.className = 'nav-btn flex flex-col items-center justify-center py-1 text-emerald-600 dark:text-emerald-400';
+                } else {
+                    btn.className = 'nav-btn flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200';
+                }
+            });
+
+            if (tabId === 'tab-analytics') {
+                setTimeout(updateCharts, 100);
+            }
+        }
+
+        // Category Filter for Goals
+        function filterGoals(category) {
+            currentCategoryFilter = category;
+            document.querySelectorAll('.goal-filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-category') === category) {
+                    btn.className = 'goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-emerald-600 text-white';
+                } else {
+                    btn.className = 'goal-filter-btn px-3 py-1.5 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200';
+                }
+            });
+            renderGoalsList(category);
+        }
+
+        // Render Dashboard View
+        function renderDashboard() {
+            const goalsSum = goals.reduce((acc, g) => acc + g.current, 0);
+            const targetsSum = goals.reduce((acc, g) => acc + g.target, 0);
+            const grandTotal = goalsSum + nonGoalSavings;
+            const overallPct = targetsSum > 0 ? Math.round((goalsSum / targetsSum) * 100) : 0;
+
+            document.getElementById('totalSavings').innerText = grandTotal.toLocaleString();
+            document.getElementById('goalSavingsTotal').innerText = goalsSum.toLocaleString();
+            document.getElementById('nonGoalSavingsTotal').innerText = nonGoalSavings.toLocaleString();
+            document.getElementById('nonGoalCardBalance').innerText = nonGoalSavings.toLocaleString();
+            document.getElementById('totalTarget').innerText = targetsSum.toLocaleString();
+
+            const progressBar = document.getElementById('overallProgressBar');
+            const pctBadge = document.getElementById('overallPercentBadge');
+
+            if (progressBar) progressBar.style.width = `${Math.min(overallPct, 100)}%`;
+            if (pctBadge) pctBadge.innerText = `${overallPct}% Target Met`;
+
+            // Render Dashboard Priority Goals (Top 2)
+            const dashGoalsList = document.getElementById('dashboardGoalsList');
+            if (dashGoalsList) {
+                dashGoalsList.innerHTML = '';
+                const topGoals = goals.slice(0, 2);
+
+                if (topGoals.length === 0) {
+                    dashGoalsList.innerHTML = `<p class="text-xs text-slate-400 col-span-2 text-center py-4">No goals added yet.</p>`;
+                } else {
+                    topGoals.forEach(g => {
+                        const pct = Math.round((g.current / g.target) * 100);
+                        dashGoalsList.innerHTML += `
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center space-x-2.5">
+                                        <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">
+                                            <i class="fa-solid ${g.icon || 'fa-bullseye'}"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-xs text-slate-900 dark:text-white">${g.title}</h4>
+                                            <span class="text-[10px] text-slate-400">Target: ${currentCurrency}${g.target.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold ${pct >= 100 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'}">
+                                        ${pct}%
+                                    </span>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                                        <span>${currentCurrency}${g.current.toLocaleString()}</span>
+                                        <span>Target: ${g.targetDate}</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${Math.min(pct, 100)}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            // Render Dashboard Recent Transactions
+            const recentTxList = document.getElementById('recentTransactionsList');
+            if (recentTxList) {
+                recentTxList.innerHTML = '';
+                const recent = transactions.slice(0, 3);
+
+                if (recent.length === 0) {
+                    recentTxList.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">No transactions recorded.</p>`;
+                } else {
+                    recent.forEach(tx => {
+                        const isDep = tx.type === 'deposit';
+                        recentTxList.innerHTML += `
+                            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-white dark:hover:bg-slate-700/60 transition">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-7 h-7 rounded-lg ${isDep ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400'} flex items-center justify-center text-xs">
+                                        <i class="fa-solid ${isDep ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-xs font-semibold text-slate-900 dark:text-white leading-none">${tx.goalTitle}</h5>
+                                        <span class="text-[10px] text-slate-400">${tx.date}</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold ${isDep ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}">
+                                    ${isDep ? '+' : '-'}${currentCurrency}${tx.amount.toLocaleString()}
+                                </span>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            updateCharts();
+        }
+
+        // Render All Goals List
+        function renderGoalsList(categoryFilter = 'all') {
+            const container = document.getElementById('allGoalsList');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const filtered = goals.filter(g => categoryFilter === 'all' || g.category === categoryFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-center text-slate-400 py-8">No goals found for this filter category.</p>`;
+                return;
+            }
+
+            filtered.forEach(g => {
+                const pct = Math.round((g.current / g.target) * 100);
+                const isOver = pct >= 100;
+
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-2xl ${isOver ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400'} flex items-center justify-center text-lg">
+                                    <i class="fa-solid ${g.icon || 'fa-bullseye'}"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-sm text-slate-900 dark:text-white">${g.title}</h3>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">${g.category}</span>
+                                        <span class="text-[10px] text-slate-400">Due: ${g.targetDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2.5 py-1 rounded-xl text-xs font-extrabold ${isOver ? 'bg-amber-500 text-white shadow-xs' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'}">
+                                    ${pct}% ${isOver ? '🎉' : ''}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs font-medium">
+                                <span class="text-slate-600 dark:text-slate-300">Saved: <strong class="text-slate-900 dark:text-white">${currentCurrency}${g.current.toLocaleString()}</strong></span>
+                                <span class="text-slate-500 dark:text-slate-400">Target: ${currentCurrency}${g.target.toLocaleString()}</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                <div class="${isOver ? 'bg-gradient-to-r from-emerald-500 to-amber-500' : 'bg-emerald-500'} h-full rounded-full transition-all duration-300" style="width: ${Math.min(pct, 100)}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                            <button onclick="quickDeposit('${g.id}')" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-plus-circle"></i> + Add Deposit
+                            </button>
+                            <button onclick="deleteGoal('${g.id}')" class="text-xs text-slate-400 hover:text-rose-500 transition">
+                                <i class="fa-solid fa-trash-can"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Render Transaction History
+        function renderTransactions() {
+            const list = document.getElementById('fullTransactionsList');
+            const searchInput = document.getElementById('txSearch');
+            const search = searchInput ? searchInput.value.toLowerCase() : '';
+            const filterSelect = document.getElementById('txTypeFilter');
+            const filterType = filterSelect ? filterSelect.value : 'all';
+
+            if (!list) return;
+            list.innerHTML = '';
+
+            let filtered = transactions.filter(t => {
+                const matchesSearch = t.goalTitle.toLowerCase().includes(search) || (t.note && t.note.toLowerCase().includes(search));
+                const matchesType = filterType === 'all' || t.type === filterType;
+                return matchesSearch && matchesType;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<p class="text-xs text-center py-8 text-slate-400">No matching transactions found</p>`;
+                return;
+            }
+
+            filtered.forEach(tx => {
+                const isDep = tx.type === 'deposit';
+                list.innerHTML += `
+                    <div class="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full ${isDep ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400'} flex items-center justify-center text-xs">
+                                <i class="fa-solid ${isDep ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-900 dark:text-white">${tx.goalTitle}</h4>
+                                <p class="text-[10px] text-slate-400">${tx.date} • ${tx.note || (isDep ? 'Deposit' : 'Withdrawal')}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold block ${isDep ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}">
+                                ${isDep ? '+' : '-'}${currentCurrency}${tx.amount.toLocaleString()}
+                            </span>
+                            <button onclick="deleteTransaction('${tx.id}')" class="text-[10px] text-slate-400 hover:text-rose-500">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Modal Controls
+        function openAddGoalModal() {
+            setupMinTargetDate();
+            document.getElementById('addGoalModal').classList.remove('hidden');
+        }
+
+        function openDepositModal(presetTargetId = null) {
+            populateTxGoalSelect(presetTargetId);
+            document.getElementById('txType').value = 'deposit';
+            document.getElementById('modalTxTitle').innerText = 'Deposit Funds';
+            document.getElementById('txSubmitBtn').className = 'w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition';
+            document.getElementById('depositModal').classList.remove('hidden');
+        }
+
+        function openWithdrawModal() {
+            populateTxGoalSelect();
+            document.getElementById('txType').value = 'withdraw';
+            document.getElementById('modalTxTitle').innerText = 'Withdraw Funds';
+            document.getElementById('txSubmitBtn').className = 'w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-rose-500/20 transition';
+            document.getElementById('depositModal').classList.remove('hidden');
+        }
+
+        function quickDeposit(goalId) {
+            openDepositModal(goalId);
+        }
+
+        function populateTxGoalSelect(selectedId = null) {
+            const select = document.getElementById('txGoalSelect');
+            if (!select) return;
+            select.innerHTML = `
+                <option value="non-goal" ${selectedId === 'non-goal' ? 'selected' : ''}>
+                    Vault: Non-Goal Flexible Savings (${currentCurrency}${nonGoalSavings.toLocaleString()})
+                </option>
+            `;
+            
+            goals.forEach(g => {
+                const pct = Math.round((g.current / g.target) * 100);
+                select.innerHTML += `
+                    <option value="${g.id}" ${selectedId === g.id ? 'selected' : ''}>
+                        Goal: ${g.title} (${currentCurrency}${g.current.toLocaleString()} / ${pct}%)
+                    </option>
+                `;
+            });
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Form Handlers
+        function handleAddGoal(e) {
+            e.preventDefault();
+            const title = document.getElementById('goalTitle').value.trim();
+            const target = parseFloat(document.getElementById('goalTarget').value);
+            const category = document.getElementById('goalCategory').value;
+            const targetDate = document.getElementById('goalTargetDate').value;
+            const initial = parseFloat(document.getElementById('goalInitial').value) || 0;
+
+            const minAllowed = getFutureDate(3);
+            if (targetDate < minAllowed) {
+                showToast(`Target date must be at least 3 months from today (${minAllowed})`, 'warning');
+                return;
+            }
+
+            const newGoal = {
+                id: 'g_' + Date.now(),
+                title,
+                category,
+                target,
+                current: initial,
+                targetDate,
+                icon: category === 'Emergency' ? 'fa-shield-halved' : category === 'Travel' ? 'fa-plane' : category === 'Gadgets' ? 'fa-laptop' : 'fa-coins'
+            };
+
+            goals.push(newGoal);
+
+            if (initial > 0) {
+                transactions.unshift({
+                    id: 't_' + Date.now(),
+                    goalId: newGoal.id,
+                    goalTitle: newGoal.title,
+                    type: 'deposit',
+                    amount: initial,
+                    date: new Date().toISOString().split('T')[0],
+                    note: 'Initial deposit on goal creation'
+                });
+            }
+
+            saveDataToStorage();
+            closeModal('addGoalModal');
+            document.getElementById('addGoalForm').reset();
+            renderDashboard();
+            renderGoalsList(currentCategoryFilter);
+            renderTransactions();
+            showToast('New goal created successfully!');
+        }
+
+        function handleTransactionSubmit(e) {
+            e.preventDefault();
+            const destination = document.getElementById('txGoalSelect').value;
+            const type = document.getElementById('txType').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const note = document.getElementById('txNote').value.trim();
+
+            if (destination === 'non-goal') {
+                if (type === 'withdraw' && amount > nonGoalSavings) {
+                    showToast('Insufficient funds in Non-Goal pot!', 'warning');
+                    return;
+                }
+
+                if (type === 'deposit') {
+                    nonGoalSavings += amount;
+                } else {
+                    nonGoalSavings -= amount;
+                }
+
+                transactions.unshift({
+                    id: 't_' + Date.now(),
+                    goalId: 'non-goal',
+                    goalTitle: 'Non-Goal Savings Pot',
+                    type,
+                    amount,
+                    date: new Date().toISOString().split('T')[0],
+                    note
+                });
+
+            } else {
+                const goal = goals.find(g => g.id === destination);
+                if (!goal) return;
+
+                if (type === 'withdraw' && amount > goal.current) {
+                    showToast('Insufficient funds in selected goal!', 'warning');
+                    return;
+                }
+
+                const prevPct = Math.round((goal.current / goal.target) * 100);
+
+                if (type === 'deposit') {
+                    goal.current += amount;
+                    const newPct = Math.round((goal.current / goal.target) * 100);
+                    
+                    if (newPct >= 100) {
+                        try {
+                            confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+                        } catch (err) {}
+
+                        if (prevPct < 100) {
+                            showToast(`🎉 Goal reached 100%! Extra savings allowed (${newPct}%)`);
+                        } else {
+                            showToast(`🔥 Goal overachieved! Total now at ${newPct}%!`);
+                        }
+                    }
+                } else {
+                    goal.current -= amount;
+                }
+
+                transactions.unshift({
+                    id: 't_' + Date.now(),
+                    goalId: goal.id,
+                    goalTitle: goal.title,
+                    type,
+                    amount,
+                    date: new Date().toISOString().split('T')[0],
+                    note
+                });
+            }
+
+            saveDataToStorage();
+            closeModal('depositModal');
+            document.getElementById('txForm').reset();
+            renderDashboard();
+            renderGoalsList(currentCategoryFilter);
+            renderTransactions();
+            showToast('Transaction saved successfully!');
+        }
+
+        function deleteGoal(id) {
+            goals = goals.filter(g => g.id !== id);
+            transactions = transactions.filter(t => t.goalId !== id);
+            saveDataToStorage();
+            renderDashboard();
+            renderGoalsList(currentCategoryFilter);
+            renderTransactions();
+            showToast('Goal removed');
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveDataToStorage();
+            renderDashboard();
+            renderTransactions();
+            showToast('Transaction removed');
+        }
+
+        // Initialize Analytics Charts
+        function initCharts() {
+            const elDoughnut = document.getElementById('goalsDoughnutChart');
+            const elBar = document.getElementById('monthlyBarChart');
+
+            if (!elDoughnut || !elBar) return;
+
+            const ctxDoughnut = elDoughnut.getContext('2d');
+            doughnutChart = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Non-Goal Pot', ...goals.map(g => g.title)],
+                    datasets: [{
+                        data: [nonGoalSavings, ...goals.map(g => g.current)],
+                        backgroundColor: ['#14b8a6', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+
+            const ctxBar = elBar.getContext('2d');
+            monthlyChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                    datasets: [{
+                        label: 'Savings Trend',
+                        data: [12000, 15000, 14000, 22000, 18500],
+                        backgroundColor: '#10b981',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            updateCharts();
+        }
+
+        function updateCharts() {
+            if (!doughnutChart) return;
+            doughnutChart.data.labels = ['Non-Goal Pot', ...goals.map(g => g.title)];
+            doughnutChart.data.datasets[0].data = [nonGoalSavings, ...goals.map(g => g.current)];
+            doughnutChart.update();
+        }
+
+        function changeCurrency(symbol) {
+            currentCurrency = symbol;
+            saveDataToStorage();
+            document.querySelectorAll('.currSymbol').forEach(el => el.innerText = currentCurrency);
+            renderDashboard();
+            renderGoalsList(currentCategoryFilter);
+            renderTransactions();
+            showToast(`Currency updated to ${symbol}`);
+        }
+
+        function resetDemoData() {
+            localStorage.removeItem('mpk_non_goal');
+            localStorage.removeItem('mpk_goals');
+            localStorage.removeItem('mpk_transactions');
+            localStorage.removeItem('mpk_currency');
+            nonGoalSavings = DEFAULT_NON_GOAL_SAVINGS;
+            goals = JSON.parse(JSON.stringify(DEFAULT_GOALS));
+            transactions = JSON.parse(JSON.stringify(DEFAULT_TRANSACTIONS));
+            currentCurrency = '₹';
+            saveDataToStorage();
+            renderDashboard();
+            renderGoalsList('all');
+            renderTransactions();
+            showToast('Demo data reset to default!');
+        }
+
+        let deferredPrompt = null;
+
+        function initPwaSupport() {
+            // 1. Dynamic Web App Manifest creation
+            const manifestData = {
+                name: "MPK Savings Tracker",
+                short_name: "MPK Savings",
+                description: "Goal & Flexible Money Tracker",
+                start_url: "./",
+                display: "standalone",
+                background_color: "#0f172a",
+                theme_color: "#059669",
+                icons: [
+                    { src: "https://placehold.co/192x192/059669/ffffff?text=MPK", sizes: "192x192", type: "image/png" },
+                    { src: "https://placehold.co/512x512/059669/ffffff?text=MPK", sizes: "512x512", type: "image/png" }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(manifestBlob);
+            const manifestLink = document.getElementById('pwaManifestLink');
+            if (manifestLink) manifestLink.setAttribute('href', manifestURL);
+
+            // 2. Inline Service Worker Registration for Offline Capabilities
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'mpk-savings-v1';
+                    self.addEventListener('install', (e) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('activate', (e) => {
+                        e.waitUntil(clients.claim());
+                    });
+                    self.addEventListener('fetch', (e) => {
+                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                    });
+                `;
+                try {
+                    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl).catch(() => {});
+                } catch(e) {}
+            }
+
+            // 3. Capture PWA BeforeInstallPrompt Event
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showPwaInstallButtons(true);
+            });
+
+            // 4. Handle Successful Installation
+            window.addEventListener('appinstalled', () => {
+                deferredPrompt = null;
+                showPwaInstallButtons(false);
+                const pwaStatus = document.getElementById('pwaStatusText');
+                if (pwaStatus) pwaStatus.innerText = "App is installed on this device 🎉";
+                showToast("MPK Savings App installed successfully!");
+            });
+
+            // 5. Detect Standalone Mode
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                const pwaStatus = document.getElementById('pwaStatusText');
+                if (pwaStatus) pwaStatus.innerText = "App running in Native Standalone Mode";
+                showPwaInstallButtons(false);
+            }
+        }
+
+        function showPwaInstallButtons(visible) {
+            const headerBtn = document.getElementById('pwaInstallHeaderBtn');
+            const settingsBtn = document.getElementById('pwaInstallSettingsBtn');
+
+            if (headerBtn) {
+                if (visible) headerBtn.classList.remove('hidden');
+                else headerBtn.classList.add('hidden');
+            }
+            if (settingsBtn) {
+                settingsBtn.disabled = !visible;
+                if (!visible) {
+                    settingsBtn.className = 'px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-400 rounded-xl text-xs font-semibold cursor-not-allowed';
+                }
+            }
+        }
+
+        function triggerPwaInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showToast('Installing MPK App...');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIos) {
+                    showToast('iOS: Tap Share button & select "Add to Home Screen"', 'warning');
+                } else {
+                    showToast('Open in Chrome/Edge and select "Add to Home Screen"', 'warning');
+                }
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
+            }, 2800);
+        }
+    </script>
+</body>
+</html>
